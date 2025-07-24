@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cosmic Breathing Cube</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: black; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'https://cdn.skypack.dev/three@0.155.0';
+import { OrbitControls } from 'https://cdn.skypack.dev/three@0.155.0/examples/jsm/controls/OrbitControls.js';
+
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
+
+let renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+const pointLight = new THREE.PointLight(0xffcc66, 1, 100);
+pointLight.position.set(5, 5, 5);
+scene.add(pointLight);
+
+// Materials
+const cubeMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffcc66,
+  emissive: 0xffcc66,
+  metalness: 0.8,
+  roughness: 0.3,
+  wireframe: true
+});
+
+const sphereMaterial = new THREE.MeshStandardMaterial({
+  color: 0xffcc66,
+  emissive: 0x8844ff,
+  metalness: 0.9,
+  roughness: 0.2,
+  wireframe: true
+});
+
+// Geometry
+const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+const sphereGeometry = new THREE.SphereGeometry(0.87, 32, 32);
+
+// Mesh
+let morphMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
+scene.add(morphMesh);
+
+// Breathing + morphing
+let clock = new THREE.Clock();
+let duration = 10; // seconds
+let morphingStart = 5; // morph begins at 5 seconds
+
+function animate() {
+  requestAnimationFrame(animate);
+  let elapsed = clock.getElapsedTime();
+
+  // Breathing scale
+  let scale = 1 + 0.1 * Math.sin(elapsed * 2 * Math.PI);
+  morphMesh.scale.set(scale, scale, scale);
+
+  // Rotation
+  morphMesh.rotation.y += 0.01;
+  morphMesh.rotation.x += 0.005;
+
+  // Morph logic
+  if (elapsed > morphingStart && elapsed < morphingStart + 5) {
+    let t = (elapsed - morphingStart) / 5;
+    morphMesh.geometry = cubeGeometry.clone();
+    morphMesh.geometry.attributes.position.array.set(
+      cubeGeometry.attributes.position.array.map((v, i) =>
+        THREE.MathUtils.lerp(v, sphereGeometry.attributes.position.array[i], t)
+      )
+    );
+    morphMesh.geometry.attributes.position.needsUpdate = true;
+  } else if (elapsed >= morphingStart + 5) {
+    morphMesh.geometry = sphereGeometry;
+    morphMesh.material = sphereMaterial;
+  }
+
+  renderer.render(scene, camera);
+}
+
+animate();
+</script>
+</body>
+</html>
